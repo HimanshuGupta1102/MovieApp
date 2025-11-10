@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">FetchData</string>
+    <string name="poster">Movie poster</string>
+    <string name="favourite">Favourite</string>
+    <string name="all_movies">All</string>
+    <string name="favourites">Favourites</string>
+    <string name="welcome">Welcome, %s!</string>
+</resources>
