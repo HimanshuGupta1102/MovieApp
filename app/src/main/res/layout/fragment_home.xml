@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:background="#121212">
 
-    <!-- Welcome Text and Logout Button -->
+    <!-- Welcome Text and Profile Icon -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -26,18 +26,16 @@
             android:textStyle="bold"
             android:textColor="@android:color/white" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLogout"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Logout"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            app:cornerRadius="20dp"
-            app:backgroundTint="#D32F2F"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:minHeight="40dp" />
+        <ImageView
+            android:id="@+id/ivProfileIcon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_profile"
+            android:contentDescription="Profile"
+            android:background="@drawable/circle_background"
+            android:padding="10dp"
+            android:clickable="true"
+            android:focusable="true" />
 
     </LinearLayout>
 

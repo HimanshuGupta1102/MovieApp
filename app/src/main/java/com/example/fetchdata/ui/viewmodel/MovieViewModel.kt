@@ -1,16 +1,20 @@
 package com.example.fetchdata.ui.viewmodel
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fetchdata.data.local.MovieDatabase
 import com.example.fetchdata.data.model.MovieDetail
 import com.example.fetchdata.data.repository.MovieRepository
+import com.example.fetchdata.utils.NetworkUtils
 import kotlinx.coroutines.launch
 
-class MovieViewModel : ViewModel() {
-    private val repository = MovieRepository()
+class MovieViewModel(application: Application) : AndroidViewModel(application) {
+    private val database = MovieDatabase.getDatabase(application)
+    private val repository = MovieRepository(database.movieCacheDao())
 
     private val _movieDetail = MutableLiveData<MovieDetail>()
     val movieDetail: LiveData<MovieDetail> = _movieDetail
@@ -33,18 +37,7 @@ class MovieViewModel : ViewModel() {
                 _movieDetail.postValue(response)
             } catch (e: Exception) {
                 Log.e("MovieViewModel", "Error fetching movie details: ${e.message}", e)
-
-                // User-friendly error messages
-                val errorMsg = when {
-                    e.message?.contains("Unable to resolve host") == true ->
-                        "No internet connection"
-                    e.message?.contains("timeout") == true ->
-                        "Request timed out. Please try again"
-                    e.message?.contains("401") == true || e.message?.contains("403") == true ->
-                        "Invalid API key"
-                    else -> "Error loading movie details: ${e.message}"
-                }
-                _error.postValue(errorMsg)
+                _error.postValue(NetworkUtils.getErrorMessage(e))
             } finally {
                 _isLoading.postValue(false)
             }

@@ -38,6 +38,17 @@ class SignUpFragment : Fragment() {
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBarSignUp)
         val tvGoToSignIn = view.findViewById<TextView>(R.id.tvGoToSignIn)
 
+        // Auto-navigate to Home after successful signup and auto-login
+        authViewModel.currentUser.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                // Only navigate if we're still on SignUpFragment (prevents duplicate navigation)
+                if (findNavController().currentDestination?.id == R.id.signUpFragment) {
+                    val action = SignUpFragmentDirections.actionSignUpToHome(user.firstName)
+                    findNavController().navigate(action)
+                }
+            }
+        }
+
         btnSignUp.setOnClickListener {
             val firstName = etFirstName.text.toString().trim()
             val lastName = etLastName.text.toString().trim()
@@ -61,8 +72,7 @@ class SignUpFragment : Fragment() {
                     progressBar.visibility = View.GONE
                     btnSignUp.isEnabled = true
                     Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show()
-                    // Navigate to sign in after successful signup
-                    findNavController().navigate(R.id.action_signUp_to_signIn)
+                    // Navigation now handled by currentUser observer
                 }
                 is AuthViewModel.AuthState.Error -> {
                     progressBar.visibility = View.GONE

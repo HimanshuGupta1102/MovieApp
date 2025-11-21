@@ -1,16 +1,21 @@
 package com.example.fetchdata.ui.viewmodel
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fetchdata.data.local.MovieDatabase
 import com.example.fetchdata.data.model.MovieSearch
 import com.example.fetchdata.data.repository.MovieRepository
+import com.example.fetchdata.data.repository.Resource
 import kotlinx.coroutines.launch
 
-class AllMoviesViewModel : ViewModel() {
-    private val repository = MovieRepository()
+class AllMoviesViewModel(application: Application) : AndroidViewModel(application) {
+    private val database = MovieDatabase.getDatabase(application)
+    private val repository = MovieRepository(database.movieCacheDao())
+
     private val _movies = MutableLiveData<List<MovieSearch>>()
     val movies: LiveData<List<MovieSearch>> = _movies
 
@@ -36,14 +41,18 @@ class AllMoviesViewModel : ViewModel() {
             return
         }
 
-        if (query == currentQuery && currentPage == 1 && _isLoading.value == true) {
+        // Only skip if it's the exact same query AND we already have results
+        if (query == currentQuery && currentPage == 1 && allMovies.isNotEmpty()) {
+            Log.d("AllMoviesViewModel", "Skipping duplicate search for: $query (already have results)")
             return
         }
 
+        Log.d("AllMoviesViewModel", "Starting new search for: '$query'")
         currentQuery = query
         currentPage = 1
         totalResults = 0
         allMovies.clear()
+        _movies.postValue(emptyList()) // Clear UI immediately
         fetchMovies()
     }
 
@@ -70,42 +79,95 @@ class AllMoviesViewModel : ViewModel() {
                 _error.postValue(null)
                 isLoadingMore = true
 
-                val searchResponse = repository.searchMovies(currentQuery, currentPage)
+                Log.d("AllMoviesViewModel", "Fetching movies for query: '$currentQuery', page: $currentPage")
 
-                if (searchResponse.Response == "True") {
-                    totalResults = searchResponse.totalResults?.toIntOrNull() ?: 0
-                    Log.d("AllMoviesViewModel", "Total results: $totalResults")
+                // Use cache-first strategy
+                val result = repository.searchMoviesWithCache(currentQuery, currentPage)
 
-                    val newMovies = searchResponse.Search ?: emptyList()
+                when (result) {
+                    is Resource.Success -> {
+                        val newMovies = result.data ?: emptyList()
+                        Log.d("AllMoviesViewModel", "Success: Got ${newMovies.size} movies")
 
-                    if (currentPage == 1) {
-                        allMovies.clear()
+                        if (currentPage == 1) {
+                            allMovies.clear()
+                        }
+
+                        allMovies.addAll(newMovies)
+                        _movies.postValue(allMovies.toList())
+
+                        Log.d("AllMoviesViewModel", "Added ${newMovies.size} movies. Total: ${allMovies.size}")
+
+                        if (newMovies.isEmpty() && currentPage > 1) {
+                            _error.postValue("No more results available")
+                        }
                     }
 
-                    allMovies.addAll(newMovies)
-                    _movies.postValue(allMovies.toList())
+                    is Resource.Error -> {
+                        Log.e("AllMoviesViewModel", "Error: ${result.message}")
 
-                    Log.d("AllMoviesViewModel", "Added ${newMovies.size} movies. Total: ${allMovies.size}")
+                        // If we have cached data despite the error, use it
+                        if (result.data != null) {
+                            val cachedMovies = result.data
+                            if (currentPage == 1) {
+                                allMovies.clear()
+                            }
+                            allMovies.addAll(cachedMovies)
+                            _movies.postValue(allMovies.toList())
+                            Log.d("AllMoviesViewModel", "Using cached data: ${cachedMovies.size} movies")
+                        }
 
-                    if (newMovies.isEmpty() && currentPage > 1) {
-                        _error.postValue("No more results available")
+                        // Show user-friendly error message
+                        val errorMsg = when {
+                            result.message?.contains("No internet") == true -> result.message
+                            result.message?.contains("Unable to resolve host") == true ->
+                                "No internet connection. Showing cached results."
+                            result.message?.contains("timeout") == true ->
+                                "Request timed out. Please try again."
+                            result.message?.contains("No movies found") == true -> result.message
+                            else -> result.message ?: "Error loading movies"
+                        }
+                        _error.postValue(errorMsg)
+
+                        if (currentPage > 1 && result.data == null) {
+                            currentPage-- // Revert page increment on error without data
+                        }
                     }
-                } else {
-                    val errorMessage = "No movies found"
-                    _error.postValue(errorMessage)
-                    if (currentPage == 1) {
-                        allMovies.clear()
-                        _movies.postValue(emptyList())
+
+                    is Resource.Loading -> {
+                        // Already handling loading state
                     }
                 }
             } catch (e: Exception) {
-                Log.e("AllMoviesViewModel", "Error: ${e.message}", e)
-                _error.postValue(e.message ?: "Unknown error occurred")
+                Log.e("AllMoviesViewModel", "Unexpected error: ${e.message}", e)
+                _error.postValue("Error loading movies: ${e.message}")
+
+                if (currentPage > 1) {
+                    currentPage-- // Revert page increment on error
+                }
             } finally {
                 _isLoading.postValue(false)
                 isLoadingMore = false
             }
         }
     }
-}
 
+    /**
+     * Clear expired cache entries
+     */
+    fun clearExpiredCache() {
+        viewModelScope.launch {
+            repository.clearExpiredCache()
+        }
+    }
+
+    /**
+     * Clear all cache and refresh
+     */
+    fun refreshMovies() {
+        viewModelScope.launch {
+            repository.clearAllCache()
+            searchMovies(currentQuery)
+        }
+    }
+}

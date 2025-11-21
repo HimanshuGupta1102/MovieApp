@@ -35,11 +35,20 @@ class SignInFragment : Fragment() {
         val btnSignIn = view.findViewById<MaterialButton>(R.id.btnSignIn)
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBarSignIn)
         val tvGoToSignUp = view.findViewById<TextView>(R.id.tvGoToSignUp)
+        // Auto-login or post-login navigation centralized here to avoid double navigation
+        authViewModel.currentUser.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                // Only navigate if we're still on the SignInFragment (prevents duplicate navigate on config changes)
+                if (findNavController().currentDestination?.id == R.id.signInFragment) {
+                    val action = SignInFragmentDirections.actionSignInToHome(user.firstName)
+                    findNavController().navigate(action)
+                }
+            }
+        }
 
         btnSignIn.setOnClickListener {
-            val email = etEmail.text.toString().trim()
-            val password = etPassword.text.toString().trim()
-
+            val email = etEmail.text?.toString()?.trim().orEmpty()
+            val password = etPassword.text?.toString()?.trim().orEmpty()
             authViewModel.signIn(email, password)
         }
 
@@ -54,13 +63,10 @@ class SignInFragment : Fragment() {
                     btnSignIn.isEnabled = false
                 }
                 is AuthViewModel.AuthState.Success -> {
+                    // We no longer navigate here; currentUser observer handles it
                     progressBar.visibility = View.GONE
                     btnSignIn.isEnabled = true
                     Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
-                    // Get the current user's first name and navigate to home
-                    val firstName = authViewModel.currentUser.value?.firstName ?: "User"
-                    val action = SignInFragmentDirections.actionSignInToHome(firstName)
-                    findNavController().navigate(action)
                 }
                 is AuthViewModel.AuthState.Error -> {
                     progressBar.visibility = View.GONE
@@ -71,4 +77,3 @@ class SignInFragment : Fragment() {
         }
     }
 }
-

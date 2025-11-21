@@ -10,6 +10,7 @@ import com.example.fetchdata.data.local.User
 import com.example.fetchdata.data.repository.UserRepository
 import kotlinx.coroutines.launch
 
+
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: UserRepository
@@ -47,8 +48,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             val success = repository.registerUser(user)
 
             if (success) {
-                _currentUser.value = user
-                _authState.value = AuthState.Success("Sign up successful!")
+                // Automatically log the user in after successful registration
+                val loggedInUser = repository.loginUser(email, password)
+                if (loggedInUser != null) {
+                    _currentUser.value = loggedInUser
+                    _authState.value = AuthState.Success("Welcome ${loggedInUser.firstName}!")
+                } else {
+                    // Fallback in case login fails (shouldn't happen)
+                    _currentUser.value = user
+                    _authState.value = AuthState.Success("Sign up successful!")
+                }
             } else {
                 _authState.value = AuthState.Error("Email already registered")
             }

@@ -1,8 +1,14 @@
 <resources>
-    <string name="app_name">FetchData</string>
+    <string name="app_name">MovieApp</string>
     <string name="poster">Movie poster</string>
     <string name="favourite">Favourite</string>
     <string name="all_movies">All</string>
     <string name="favourites">Favourites</string>
     <string name="welcome">Welcome, %s!</string>
+    <string name="add_to_favorites">Add to Favorites</string>
+    <string name="remove_from_favorites">Remove from Favorites</string>
+    <string name="added_to_favorites">Added to favorites</string>
+    <string name="removed_from_favorites">Removed from favorites</string>
+    <string name="please_sign_in">Please sign in to add favourites</string>
+    <string name="invalid_movie_id">Invalid movie ID</string>
 </resources>

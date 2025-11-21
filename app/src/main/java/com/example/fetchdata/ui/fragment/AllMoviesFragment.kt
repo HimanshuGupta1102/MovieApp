@@ -47,6 +47,12 @@ class AllMoviesFragment : Fragment() {
         setupViews(view)
         setupRecyclerView()
         observeViewModels()
+
+        // Ensure we have data - trigger initial load if movies list is empty
+        if (movieViewModel.movies.value.isNullOrEmpty() &&
+            movieViewModel.isLoading.value != true) {
+            movieViewModel.searchMovies("movie")
+        }
     }
 
     private fun setupViews(view: View) {
@@ -128,10 +134,18 @@ class AllMoviesFragment : Fragment() {
                 if (it.contains("No more results available", ignoreCase = true)) {
                     Toast.makeText(requireContext(), "No more movies to load", Toast.LENGTH_SHORT).show()
                     // Don't show error text for this case
-                    if (adapter.itemCount > 0) {
-                        errorTextView.visibility = View.GONE
+                    errorTextView.visibility = View.GONE
+                } else if (adapter.itemCount > 0) {
+                    // If we have movies showing, don't display error message (we have cached data)
+                    // Just show a toast for info messages
+                    if (it.contains("No internet", ignoreCase = true) ||
+                        it.contains("cached", ignoreCase = true)) {
+                        Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
                     }
+                    errorTextView.visibility = View.GONE
+                    recyclerView.visibility = View.VISIBLE
                 } else {
+                    // Only show error text if we have no movies at all
                     errorTextView.text = when {
                         it.contains("No movies found", ignoreCase = true) ->
                             "No movies found. Try a different search."
@@ -142,12 +156,7 @@ class AllMoviesFragment : Fragment() {
                         else -> "Error: $it"
                     }
                     errorTextView.visibility = View.VISIBLE
-
-                    if (adapter.itemCount > 0) {
-                        recyclerView.visibility = View.VISIBLE
-                    } else {
-                        recyclerView.visibility = View.GONE
-                    }
+                    recyclerView.visibility = View.GONE
                 }
             } ?: run {
                 errorTextView.visibility = View.GONE
@@ -164,18 +173,22 @@ class AllMoviesFragment : Fragment() {
     }
 
     fun performSearch(query: String) {
+        android.util.Log.d("AllMoviesFragment", "performSearch called with query: '$query'")
         if (query.isNotBlank()) {
             adapter.clearMovies()
             canLoadMore = true
             movieViewModel.searchMovies(query)
+        } else {
+            android.util.Log.d("AllMoviesFragment", "Query is blank, skipping search")
         }
     }
 
     fun resetToDefault() {
-        // Reset to default "movie" search
-        adapter.clearMovies()
-        canLoadMore = true
-        movieViewModel.searchMovies("movie")
+        if (::adapter.isInitialized) {
+            adapter.clearMovies()
+            canLoadMore = true
+            movieViewModel.searchMovies("movie")
+        }
     }
 }
 

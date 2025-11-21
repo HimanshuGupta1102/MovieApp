@@ -1,6 +1,7 @@
 package com.example.fetchdata
 
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
@@ -20,16 +21,26 @@ class MainActivity : AppCompatActivity() {
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         navController = navHostFragment.navController
 
-        // Check if user is already logged in on app startup
-        authViewModel.checkIfUserLoggedIn()
-        authViewModel.currentUser.observe(this) { user ->
-            if (user != null) {
-                // User is logged in, navigate to home if not already there
-                val currentDestination = navController.currentDestination?.id
-                if (currentDestination == R.id.signInFragment || currentDestination == R.id.signUpFragment) {
-                    navController.navigate(R.id.action_signIn_to_home)
+        if (savedInstanceState == null) {
+            authViewModel.checkIfUserLoggedIn()
+        }
+
+        // Handle back button press
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when (navController.currentDestination?.id) {
+                    R.id.homeFragment, R.id.signInFragment, R.id.signUpFragment -> {
+                        // If we're on home or sign-in screen, close the app
+                        finish()
+                    }
+                    else -> {
+                        // For other screens, use default navigation back
+                        if (!navController.popBackStack()) {
+                            finish()
+                        }
+                    }
                 }
             }
-        }
+        })
     }
 }

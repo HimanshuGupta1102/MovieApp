@@ -23,6 +23,7 @@ class FavouritesFragment : Fragment() {
     private lateinit var adapter: MovieAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyTextView: TextView
+    private var isSearchMode = false
 
 
     override fun onCreateView(
@@ -63,6 +64,8 @@ class FavouritesFragment : Fragment() {
 
     private fun observeViewModel() {
         favouriteViewModel.allFavourites.observe(viewLifecycleOwner) { favourites ->
+            if (isSearchMode) return@observe // Don't update when in search mode
+
             if (favourites.isEmpty()) {
                 emptyTextView.visibility = View.VISIBLE
                 recyclerView.visibility = View.GONE
@@ -84,15 +87,64 @@ class FavouritesFragment : Fragment() {
                 adapter.addMovies(moviesList)
             }
         }
+
+        favouriteViewModel.searchResults.observe(viewLifecycleOwner) { searchResults ->
+            if (!isSearchMode) return@observe // Only update when in search mode
+
+            if (searchResults.isEmpty()) {
+                emptyTextView.visibility = View.VISIBLE
+                emptyTextView.text = "No matching favourites found"
+                recyclerView.visibility = View.GONE
+            } else {
+                emptyTextView.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+
+                val moviesList = searchResults.map { fav ->
+                    MovieSearch(
+                        Title = fav.title,
+                        Year = fav.year,
+                        imdbID = fav.imdbID,
+                        Type = fav.type,
+                        Poster = fav.poster
+                    )
+                }
+
+                adapter.clearMovies()
+                adapter.addMovies(moviesList)
+            }
+        }
     }
 
     fun performSearch(query: String) {
-        // Searching is not needed since observeViewModel already shows all favourites
-        // If you want to implement search, do it client-side by filtering the adapter
+        isSearchMode = true
+        favouriteViewModel.searchFavourites(query)
     }
 
     fun resetToDefault() {
-        // Nothing to do - observeViewModel already handles showing all favourites
+        isSearchMode = false
+        emptyTextView.text = "No favourites yet"
+        favouriteViewModel.allFavourites.value?.let { favourites ->
+            if (favourites.isEmpty()) {
+                emptyTextView.visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
+            } else {
+                emptyTextView.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+
+                val moviesList = favourites.map { fav ->
+                    MovieSearch(
+                        Title = fav.title,
+                        Year = fav.year,
+                        imdbID = fav.imdbID,
+                        Type = fav.type,
+                        Poster = fav.poster
+                    )
+                }
+
+                adapter.clearMovies()
+                adapter.addMovies(moviesList)
+            }
+        }
     }
 }
 

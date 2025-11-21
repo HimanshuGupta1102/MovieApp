@@ -1,19 +1,18 @@
 package com.example.fetchdata.data.repository
 
-import com.example.fetchdata.data.local.FavouriteMovie
+import com.example.fetchdata.data.model.FavouriteMovie
 import com.example.fetchdata.data.local.FavouriteMovieDao
 import kotlinx.coroutines.flow.Flow
 
 class FavouriteRepository(private val dao: FavouriteMovieDao) {
 
-    fun getAllFavourites(): Flow<List<FavouriteMovie>> = dao.getAllFavourites()
+    fun getFavouritesForUser(email: String): Flow<List<FavouriteMovie>> = dao.getFavouritesForUser(email)
 
-    suspend fun isFavourite(imdbId: String): Boolean = dao.isFavourite(imdbId)
+    suspend fun isFavourite(imdbId: String, email: String): Boolean = dao.isFavourite(imdbId, email)
 
     suspend fun addFavourite(movie: FavouriteMovie) = dao.addFavourite(movie)
 
-    suspend fun removeFavourite(imdbId: String) = dao.removeFavourite(imdbId)
+    suspend fun removeFavourite(imdbId: String, email: String) = dao.removeFavourite(imdbId, email)
 
-    fun searchFavourites(query: String): Flow<List<FavouriteMovie>> = dao.searchFavourites(query)
+    fun searchFavourites(query: String, email: String): Flow<List<FavouriteMovie>> = dao.searchFavourites(query, email)
 }
-
