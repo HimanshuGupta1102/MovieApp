@@ -14,7 +14,9 @@ import com.example.fetchdata.R
 import com.example.fetchdata.ui.viewmodel.AuthViewModel
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class SignInFragment : Fragment() {
 
     private val authViewModel: AuthViewModel by activityViewModels()

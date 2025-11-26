@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.fetchdata.R
-import com.example.fetchdata.data.model.MovieSearch
+import com.example.fetchdata.data.api.model.MovieSearch
 
 class MovieAdapter(
     private val movies: MutableList<MovieSearch>,
@@ -21,11 +21,11 @@ class MovieAdapter(
         val year: TextView = view.findViewById(R.id.tvMovieYear)
 
         fun bind(movie: MovieSearch) {
-            title.text = movie.Title
-            year.text = movie.Year
+            title.text = movie.title
+            year.text = movie.year
 
             Glide.with(itemView.context)
-                .load(movie.Poster)
+                .load(movie.poster)
                 .placeholder(R.drawable.ic_launcher_background)
                 .into(poster)
 
@@ -58,4 +58,3 @@ class MovieAdapter(
         notifyDataSetChanged()
     }
 }
-

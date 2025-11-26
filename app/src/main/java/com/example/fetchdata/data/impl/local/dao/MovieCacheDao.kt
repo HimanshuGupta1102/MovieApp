@@ -1,10 +1,10 @@
-package com.example.fetchdata.data.local
+package com.example.fetchdata.data.impl.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.fetchdata.data.model.MovieCache
+import com.example.fetchdata.data.api.model.MovieCache
 
 @Dao
 interface MovieCacheDao {

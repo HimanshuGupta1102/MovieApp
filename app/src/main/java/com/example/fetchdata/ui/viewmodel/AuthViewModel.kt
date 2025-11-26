@@ -1,19 +1,19 @@
 package com.example.fetchdata.ui.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fetchdata.data.local.MovieDatabase
-import com.example.fetchdata.data.local.User
-import com.example.fetchdata.data.repository.UserRepository
+import com.example.fetchdata.data.api.model.User
+import com.example.fetchdata.data.api.repository.IUserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-
-class AuthViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository: UserRepository
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val repository: IUserRepository
+) : ViewModel() {
 
     private val _authState = MutableLiveData<AuthState>()
     val authState: LiveData<AuthState> = _authState
@@ -21,10 +21,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentUser = MutableLiveData<User?>()
     val currentUser: LiveData<User?> = _currentUser
 
-    init {
-        val userDao = MovieDatabase.getDatabase(application).userDao()
-        repository = UserRepository(userDao, application.applicationContext)
-    }
 
     fun signUp(firstName: String, lastName: String, email: String, password: String) {
         if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank()) {
@@ -54,7 +50,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     _currentUser.value = loggedInUser
                     _authState.value = AuthState.Success("Welcome ${loggedInUser.firstName}!")
                 } else {
-                    // Fallback in case login fails (shouldn't happen)
                     _currentUser.value = user
                     _authState.value = AuthState.Success("Sign up successful!")
                 }

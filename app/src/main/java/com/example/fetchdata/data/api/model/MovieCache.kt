@@ -1,4 +1,4 @@
-package com.example.fetchdata.data.model
+package com.example.fetchdata.data.api.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -15,3 +15,4 @@ data class MovieCache(
     val page: Int,
     val cachedAt: Long = System.currentTimeMillis()
 )
+

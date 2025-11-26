@@ -1,4 +1,4 @@
-package com.example.fetchdata.data.model
+package com.example.fetchdata.data.api.model
 
 import androidx.room.Entity
 
@@ -15,3 +15,4 @@ data class FavouriteMovie(
     val type: String,
     val addedAt: Long = System.currentTimeMillis()
 )
+

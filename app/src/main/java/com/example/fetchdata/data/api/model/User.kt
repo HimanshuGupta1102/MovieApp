@@ -1,4 +1,4 @@
-package com.example.fetchdata.data.local
+package com.example.fetchdata.data.api.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -7,9 +7,7 @@ import androidx.room.PrimaryKey
 data class User(
     @PrimaryKey
     val email: String,
-
     val firstName: String,
     val lastName: String,
     val password: String
 )
-

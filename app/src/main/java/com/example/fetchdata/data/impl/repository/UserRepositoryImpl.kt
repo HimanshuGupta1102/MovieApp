@@ -1,12 +1,20 @@
-package com.example.fetchdata.data.repository
+package com.example.fetchdata.data.impl.repository
 
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import com.example.fetchdata.data.local.User
-import com.example.fetchdata.data.local.UserDao
+import com.example.fetchdata.data.api.model.User
+import com.example.fetchdata.data.api.repository.IUserRepository
+import com.example.fetchdata.data.impl.local.dao.UserDao
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class UserRepository(private val userDao: UserDao, private val context: Context) {
+@Singleton
+class UserRepositoryImpl @Inject constructor(
+    private val userDao: UserDao,
+    @ApplicationContext private val context: Context
+) : IUserRepository {
 
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
@@ -16,7 +24,7 @@ class UserRepository(private val userDao: UserDao, private val context: Context)
         private const val KEY_LOGGED_IN_EMAIL = "logged_in_email"
     }
 
-    suspend fun registerUser(user: User): Boolean {
+    override suspend fun registerUser(user: User): Boolean {
         return try {
             Log.d(TAG, "Attempting to register user: ${user.email}")
             val existingUser = userDao.getUserByEmail(user.email)
@@ -34,7 +42,7 @@ class UserRepository(private val userDao: UserDao, private val context: Context)
         }
     }
 
-    suspend fun loginUser(email: String, password: String): User? {
+    override suspend fun loginUser(email: String, password: String): User? {
         return try {
             Log.d(TAG, "Attempting login for: $email")
             val user = userDao.loginUser(email, password)
@@ -52,7 +60,7 @@ class UserRepository(private val userDao: UserDao, private val context: Context)
         }
     }
 
-    suspend fun getLoggedInUser(): User? {
+    override suspend fun getLoggedInUser(): User? {
         return try {
             val email = sharedPreferences.getString(KEY_LOGGED_IN_EMAIL, null)
             if (email != null) {
@@ -69,7 +77,7 @@ class UserRepository(private val userDao: UserDao, private val context: Context)
         }
     }
 
-    fun logout() {
+    override fun logout() {
         try {
             val email = sharedPreferences.getString(KEY_LOGGED_IN_EMAIL, null)
             sharedPreferences.edit().remove(KEY_LOGGED_IN_EMAIL).apply()

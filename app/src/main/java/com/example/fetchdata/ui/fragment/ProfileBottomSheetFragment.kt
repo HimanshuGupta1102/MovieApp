@@ -11,7 +11,9 @@ import com.example.fetchdata.R
 import com.example.fetchdata.ui.viewmodel.AuthViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class ProfileBottomSheetFragment : BottomSheetDialogFragment() {
 
     private val authViewModel: AuthViewModel by activityViewModels()
@@ -31,7 +33,6 @@ class ProfileBottomSheetFragment : BottomSheetDialogFragment() {
         val profileEmail = view.findViewById<TextView>(R.id.tvProfileEmail)
         val logoutButton = view.findViewById<MaterialButton>(R.id.btnLogout)
 
-        // Observe current user and display their information
         authViewModel.currentUser.observe(viewLifecycleOwner) { user ->
             user?.let {
                 profileName.text = "${it.firstName} ${it.lastName}"
@@ -39,11 +40,9 @@ class ProfileBottomSheetFragment : BottomSheetDialogFragment() {
             }
         }
 
-        // Handle logout button click
         logoutButton.setOnClickListener {
             authViewModel.logout()
-            dismiss() // Close the bottom sheet
-            // Navigate back to sign in screen
+            dismiss()
             findNavController().navigate(R.id.signInFragment)
         }
     }

@@ -1,20 +1,23 @@
 package com.example.fetchdata.ui.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fetchdata.data.model.FavouriteMovie
-import com.example.fetchdata.data.local.MovieDatabase
-import com.example.fetchdata.data.repository.FavouriteRepository
+import com.example.fetchdata.data.api.model.FavouriteMovie
+import com.example.fetchdata.data.api.model.MovieSearch
+import com.example.fetchdata.data.api.repository.IFavouriteRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class FavouriteViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class FavouriteViewModel @Inject constructor(
+    private val repository: IFavouriteRepository
+) : ViewModel() {
 
-    private val repository: FavouriteRepository
 
     private val _favourites = MutableLiveData<List<FavouriteMovie>>()
     val allFavourites: LiveData<List<FavouriteMovie>> = _favourites
@@ -25,10 +28,6 @@ class FavouriteViewModel(application: Application) : AndroidViewModel(applicatio
     private var currentUserEmail: String? = null
     private var favouritesCollectionJob: Job? = null
 
-    init {
-        val dao = MovieDatabase.getDatabase(application).favouriteMovieDao()
-        repository = FavouriteRepository(dao)
-    }
 
     fun setUserEmail(email: String?) {
         if (email == currentUserEmail) return
@@ -73,5 +72,34 @@ class FavouriteViewModel(application: Application) : AndroidViewModel(applicatio
         repository.searchFavourites(query, email).collectLatest { results ->
             _searchResults.postValue(results)
         }
+    }
+
+    /**
+     * Transform FavouriteMovie to MovieSearch for display
+     */
+    fun transformToMovieSearch(favourites: List<FavouriteMovie>): List<MovieSearch> {
+        return favourites.map { fav ->
+            MovieSearch(
+                title = fav.title,
+                year = fav.year,
+                imdbID = fav.imdbID,
+                type = fav.type,
+                poster = fav.poster
+            )
+        }
+    }
+
+    /**
+     * Check if favourites list is empty
+     */
+    fun isEmpty(): Boolean {
+        return _favourites.value.isNullOrEmpty()
+    }
+
+    /**
+     * Get the count of favourites
+     */
+    fun getFavouriteCount(): Int {
+        return _favourites.value?.size ?: 0
     }
 }

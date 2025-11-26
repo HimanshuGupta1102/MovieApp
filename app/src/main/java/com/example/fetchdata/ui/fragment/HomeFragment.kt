@@ -1,8 +1,7 @@
 package com.example.fetchdata.ui.fragment
 
+import android.graphics.Color
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,15 +10,18 @@ import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.navigation.fragment.findNavController
+import androidx.fragment.app.viewModels
 import androidx.viewpager2.widget.ViewPager2
 import com.example.fetchdata.R
 import com.example.fetchdata.ui.adapter.HomeTabAdapter
 import com.example.fetchdata.ui.viewmodel.AuthViewModel
 import com.example.fetchdata.ui.viewmodel.FavouriteViewModel
+import com.example.fetchdata.ui.viewmodel.HomeViewModel
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class HomeFragment : Fragment() {
 
     private lateinit var tabLayout: TabLayout
@@ -28,15 +30,12 @@ class HomeFragment : Fragment() {
     private lateinit var welcomeTextView: TextView
     private lateinit var profileIcon: ImageView
 
+    private val homeViewModel: HomeViewModel by viewModels()
     private val authViewModel: AuthViewModel by activityViewModels()
     private val favouriteViewModel: FavouriteViewModel by activityViewModels()
     private val allMoviesFragment = AllMoviesFragment()
     private val favouritesFragment = FavouritesFragment()
 
-    private val searchHandler = Handler(Looper.getMainLooper())
-    private var searchRunnable: Runnable? = null
-    private val SEARCH_DEBOUNCE_DELAY = 500L // 500ms delay for better UX
-    private var lastSearchQuery = "" // Track last query to avoid duplicates
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,10 +51,10 @@ class HomeFragment : Fragment() {
         setupViews(view)
         setupViewPager()
         setupSearchView()
+        observeViewModel()
 
         // Initialize FavouriteViewModel with current user's email
         authViewModel.currentUser.observe(viewLifecycleOwner) { user ->
-            android.util.Log.d("HomeFragment", "User changed: ${user?.email}")
             favouriteViewModel.setUserEmail(user?.email)
         }
     }
@@ -69,7 +68,7 @@ class HomeFragment : Fragment() {
 
         // Get firstName from navigation arguments
         val firstName = arguments?.getString("firstName") ?: "User"
-        welcomeTextView.text = "Welcome $firstName!"
+        welcomeTextView.text = getString(R.string.welcome, firstName)
 
         // Setup profile icon to open bottom sheet
         profileIcon.setOnClickListener {
@@ -79,14 +78,14 @@ class HomeFragment : Fragment() {
 
         // Style SearchView for visibility
         val searchEditText = searchView.findViewById<android.widget.EditText>(androidx.appcompat.R.id.search_src_text)
-        searchEditText?.setTextColor(android.graphics.Color.WHITE)
-        searchEditText?.setHintTextColor(android.graphics.Color.GRAY)
+        searchEditText?.setTextColor(Color.WHITE)
+        searchEditText?.setHintTextColor(Color.GRAY)
 
-        val searchIcon = searchView.findViewById<android.widget.ImageView>(androidx.appcompat.R.id.search_mag_icon)
-        searchIcon?.setColorFilter(android.graphics.Color.WHITE)
+        val searchIcon = searchView.findViewById<ImageView>(androidx.appcompat.R.id.search_mag_icon)
+        searchIcon?.setColorFilter(Color.WHITE)
 
-        val closeIcon = searchView.findViewById<android.widget.ImageView>(androidx.appcompat.R.id.search_close_btn)
-        closeIcon?.setColorFilter(android.graphics.Color.WHITE)
+        val closeIcon = searchView.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
+        closeIcon?.setColorFilter(Color.WHITE)
     }
 
     private fun setupViewPager() {
@@ -101,72 +100,52 @@ class HomeFragment : Fragment() {
                 else -> ""
             }
         }.attach()
+
+        // Track tab changes in ViewModel
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                homeViewModel.setCurrentTab(position)
+            }
+        })
     }
-
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        searchRunnable?.let { searchHandler.removeCallbacks(it) }
-    }
-
     private fun setupSearchView() {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                query?.let {
-                    if (it.trim().isNotEmpty()) {
-                        performSearch(it.trim())
-                    } else {
-                        // If empty, reset to original state
-                        resetToOriginalState()
-                    }
-                }
+                query?.let { homeViewModel.onSearchQuerySubmitted(it) }
                 searchView.clearFocus()
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                // Real-time search implementation with debouncing
-                val query = newText?.trim() ?: ""
-                android.util.Log.d("HomeFragment", "Search query changed: '$query' (length: ${query.length})")
-
-                // Cancel any pending search
-                searchRunnable?.let { searchHandler.removeCallbacks(it) }
-
-                if (query.isEmpty()) {
-                    // Reset to original state when search is cleared
-                    android.util.Log.d("HomeFragment", "Query empty, resetting to original state")
-                    resetToOriginalState()
-                } else if (query.length >= 2) {
-                    // Only search if query is at least 2 characters, with debounce
-                    android.util.Log.d("HomeFragment", "Query length >= 2, scheduling search")
-                    searchRunnable = Runnable {
-                        performSearch(query)
-                    }
-                    searchHandler.postDelayed(searchRunnable!!, 300) // 300ms debounce
-                }
+                homeViewModel.onSearchQueryChanged(newText ?: "")
                 return true
             }
         })
     }
 
-    private fun resetToOriginalState() {
-        when (viewPager.currentItem) {
-            0 -> {
-                // Reset "All" tab to show default movies
-                allMoviesFragment.resetToDefault()
+    private fun observeViewModel() {
+        // Observe search queries and perform search
+        homeViewModel.searchQuery.observe(viewLifecycleOwner) { query ->
+            when (viewPager.currentItem) {
+                0 -> allMoviesFragment.performSearch(query)
+                1 -> favouritesFragment.performSearch(query)
             }
-            1 -> {
-                // Reset "Favourites" tab to show all favourites
-                favouritesFragment.resetToDefault()
+        }
+
+        // Observe reset to default state
+        homeViewModel.shouldResetToDefault.observe(viewLifecycleOwner) { shouldReset ->
+            if (shouldReset) {
+                resetToOriginalState()
+                homeViewModel.resetSearchState()
             }
         }
     }
 
-    private fun performSearch(query: String) {
-        android.util.Log.d("HomeFragment", "performSearch called with query: '$query', current tab: ${viewPager.currentItem}")
+    private fun resetToOriginalState() {
         when (viewPager.currentItem) {
-            0 -> allMoviesFragment.performSearch(query)
-            1 -> favouritesFragment.performSearch(query)
+            0 -> allMoviesFragment.resetToDefault()
+            1 -> favouritesFragment.resetToDefault()
         }
     }
 }

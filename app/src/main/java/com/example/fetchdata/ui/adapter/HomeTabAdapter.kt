@@ -9,4 +9,3 @@ class HomeTabAdapter(fragment: Fragment, private val fragments: List<Fragment>) 
 
     override fun createFragment(position: Int): Fragment = fragments[position]
 }
-

@@ -5,17 +5,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fetchdata.R
-import com.example.fetchdata.data.model.MovieSearch
 import com.example.fetchdata.ui.adapter.MovieAdapter
 import com.example.fetchdata.ui.viewmodel.FavouriteViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class FavouritesFragment : Fragment() {
 
     private val favouriteViewModel: FavouriteViewModel by activityViewModels()
@@ -73,16 +73,7 @@ class FavouritesFragment : Fragment() {
                 emptyTextView.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
 
-                val moviesList = favourites.map { fav ->
-                    MovieSearch(
-                        Title = fav.title,
-                        Year = fav.year,
-                        imdbID = fav.imdbID,
-                        Type = fav.type,
-                        Poster = fav.poster
-                    )
-                }
-
+                val moviesList = favouriteViewModel.transformToMovieSearch(favourites)
                 adapter.clearMovies()
                 adapter.addMovies(moviesList)
             }
@@ -93,22 +84,13 @@ class FavouritesFragment : Fragment() {
 
             if (searchResults.isEmpty()) {
                 emptyTextView.visibility = View.VISIBLE
-                emptyTextView.text = "No matching favourites found"
+                emptyTextView.text = getString(R.string.no_matching_favourites)
                 recyclerView.visibility = View.GONE
             } else {
                 emptyTextView.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
 
-                val moviesList = searchResults.map { fav ->
-                    MovieSearch(
-                        Title = fav.title,
-                        Year = fav.year,
-                        imdbID = fav.imdbID,
-                        Type = fav.type,
-                        Poster = fav.poster
-                    )
-                }
-
+                val moviesList = favouriteViewModel.transformToMovieSearch(searchResults)
                 adapter.clearMovies()
                 adapter.addMovies(moviesList)
             }
@@ -122,7 +104,7 @@ class FavouritesFragment : Fragment() {
 
     fun resetToDefault() {
         isSearchMode = false
-        emptyTextView.text = "No favourites yet"
+        emptyTextView.text = getString(R.string.no_favourites_yet)
         favouriteViewModel.allFavourites.value?.let { favourites ->
             if (favourites.isEmpty()) {
                 emptyTextView.visibility = View.VISIBLE
@@ -131,16 +113,7 @@ class FavouritesFragment : Fragment() {
                 emptyTextView.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
 
-                val moviesList = favourites.map { fav ->
-                    MovieSearch(
-                        Title = fav.title,
-                        Year = fav.year,
-                        imdbID = fav.imdbID,
-                        Type = fav.type,
-                        Poster = fav.poster
-                    )
-                }
-
+                val moviesList = favouriteViewModel.transformToMovieSearch(favourites)
                 adapter.clearMovies()
                 adapter.addMovies(moviesList)
             }

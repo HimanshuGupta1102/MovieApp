@@ -1,10 +1,10 @@
-package com.example.fetchdata.data.local
+package com.example.fetchdata.data.impl.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.fetchdata.data.model.FavouriteMovie
+import com.example.fetchdata.data.api.model.FavouriteMovie
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -12,7 +12,6 @@ interface FavouriteMovieDao {
 
     @Query("SELECT * FROM favourite_movies WHERE userEmail = :userEmail ORDER BY addedAt DESC")
     fun getFavouritesForUser(userEmail: String): Flow<List<FavouriteMovie>>
-
     @Query("SELECT * FROM favourite_movies WHERE imdbID = :imdbId AND userEmail = :userEmail LIMIT 1")
     suspend fun getFavouriteById(imdbId: String, userEmail: String): FavouriteMovie?
 
@@ -28,3 +27,4 @@ interface FavouriteMovieDao {
     @Query("SELECT * FROM favourite_movies WHERE userEmail = :userEmail AND title LIKE '%' || :query || '%' ORDER BY addedAt DESC")
     fun searchFavourites(query: String, userEmail: String): Flow<List<FavouriteMovie>>
 }
+

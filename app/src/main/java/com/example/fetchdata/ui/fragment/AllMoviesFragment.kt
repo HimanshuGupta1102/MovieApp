@@ -1,9 +1,5 @@
 package com.example.fetchdata.ui.fragment
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,7 +15,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.fetchdata.R
 import com.example.fetchdata.ui.adapter.MovieAdapter
 import com.example.fetchdata.ui.viewmodel.AllMoviesViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class AllMoviesFragment : Fragment() {
 
     private val movieViewModel: AllMoviesViewModel by activityViewModels()
@@ -48,7 +46,6 @@ class AllMoviesFragment : Fragment() {
         setupRecyclerView()
         observeViewModels()
 
-        // Ensure we have data - trigger initial load if movies list is empty
         if (movieViewModel.movies.value.isNullOrEmpty() &&
             movieViewModel.isLoading.value != true) {
             movieViewModel.searchMovies("movie")
@@ -88,19 +85,12 @@ class AllMoviesFragment : Fragment() {
                 if (canLoadMore && !isLoading && totalItemCount > 0 &&
                     (visibleItemCount + firstVisibleItemPosition) >= totalItemCount
                     && firstVisibleItemPosition >= 0) {
-
-                    if (isNetworkAvailable()) {
-                        movieViewModel.loadMoreMovies()
-                    } else {
-                        Toast.makeText(requireContext(),
-                            "No internet connection", Toast.LENGTH_SHORT).show()
-                    }
+                    movieViewModel.loadMoreMovies()
                 }
             }
         })
     }
 
-    @SuppressLint("SetTextI18n")
     private fun observeViewModels() {
         movieViewModel.movies.observe(viewLifecycleOwner) { movies ->
             if (movies.isEmpty() && movieViewModel.isLoading.value == false) {
@@ -130,31 +120,18 @@ class AllMoviesFragment : Fragment() {
 
         movieViewModel.error.observe(viewLifecycleOwner) { error ->
             error?.let {
-                // Handle "No more results" as a toast instead of error text
-                if (it.contains("No more results available", ignoreCase = true)) {
-                    Toast.makeText(requireContext(), "No more movies to load", Toast.LENGTH_SHORT).show()
-                    // Don't show error text for this case
+                val hasMovies = adapter.itemCount > 0
+
+                if (movieViewModel.shouldShowErrorAsToast(it, hasMovies)) {
+                    Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
                     errorTextView.visibility = View.GONE
-                } else if (adapter.itemCount > 0) {
-                    // If we have movies showing, don't display error message (we have cached data)
-                    // Just show a toast for info messages
-                    if (it.contains("No internet", ignoreCase = true) ||
-                        it.contains("cached", ignoreCase = true)) {
-                        Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                    }
+                } else if (hasMovies) {
+                    // Has movies, hide error view
                     errorTextView.visibility = View.GONE
                     recyclerView.visibility = View.VISIBLE
                 } else {
-                    // Only show error text if we have no movies at all
-                    errorTextView.text = when {
-                        it.contains("No movies found", ignoreCase = true) ->
-                            "No movies found. Try a different search."
-                        it.contains("Unable to resolve host", ignoreCase = true) ->
-                            "No internet connection. Please check your network."
-                        it.contains("timeout", ignoreCase = true) ->
-                            "Request timed out. Please try again."
-                        else -> "Error: $it"
-                    }
+                    // No movies, show error in error view
+                    errorTextView.text = movieViewModel.formatErrorMessage(it)
                     errorTextView.visibility = View.VISIBLE
                     recyclerView.visibility = View.GONE
                 }
@@ -164,22 +141,12 @@ class AllMoviesFragment : Fragment() {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-    }
 
     fun performSearch(query: String) {
-        android.util.Log.d("AllMoviesFragment", "performSearch called with query: '$query'")
         if (query.isNotBlank()) {
             adapter.clearMovies()
             canLoadMore = true
             movieViewModel.searchMovies(query)
-        } else {
-            android.util.Log.d("AllMoviesFragment", "Query is blank, skipping search")
         }
     }
 

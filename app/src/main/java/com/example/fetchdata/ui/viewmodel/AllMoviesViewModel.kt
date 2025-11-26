@@ -1,20 +1,21 @@
 package com.example.fetchdata.ui.viewmodel
 
-import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fetchdata.data.local.MovieDatabase
-import com.example.fetchdata.data.model.MovieSearch
-import com.example.fetchdata.data.repository.MovieRepository
-import com.example.fetchdata.data.repository.Resource
+import com.example.fetchdata.data.api.model.MovieSearch
+import com.example.fetchdata.data.api.repository.IMovieRepository
+import com.example.fetchdata.data.impl.repository.Resource
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AllMoviesViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = MovieDatabase.getDatabase(application)
-    private val repository = MovieRepository(database.movieCacheDao())
+@HiltViewModel
+class AllMoviesViewModel @Inject constructor(
+    private val repository: IMovieRepository
+) : ViewModel() {
 
     private val _movies = MutableLiveData<List<MovieSearch>>()
     val movies: LiveData<List<MovieSearch>> = _movies
@@ -24,6 +25,9 @@ class AllMoviesViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
+
+    private val _canLoadMore = MutableLiveData<Boolean>(true)
+    val canLoadMore: LiveData<Boolean> = _canLoadMore
 
     private var currentPage = 1
     private var currentQuery = "movie"
@@ -41,7 +45,6 @@ class AllMoviesViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
 
-        // Only skip if it's the exact same query AND we already have results
         if (query == currentQuery && currentPage == 1 && allMovies.isNotEmpty()) {
             Log.d("AllMoviesViewModel", "Skipping duplicate search for: $query (already have results)")
             return
@@ -135,7 +138,6 @@ class AllMoviesViewModel(application: Application) : AndroidViewModel(applicatio
                     }
 
                     is Resource.Loading -> {
-                        // Already handling loading state
                     }
                 }
             } catch (e: Exception) {
@@ -148,22 +150,49 @@ class AllMoviesViewModel(application: Application) : AndroidViewModel(applicatio
             } finally {
                 _isLoading.postValue(false)
                 isLoadingMore = false
+                updateLoadMoreState()
             }
         }
     }
 
-    /**
-     * Clear expired cache entries
-     */
+    fun formatErrorMessage(message: String?): String {
+        return when {
+            message == null -> "Unknown error"
+            message.contains("No internet", ignoreCase = true) -> message
+            message.contains("Unable to resolve host", ignoreCase = true) ->
+                "No internet connection. Please check your network."
+            message.contains("timeout", ignoreCase = true) ->
+                "Request timed out. Please try again."
+            message.contains("No movies found", ignoreCase = true) ->
+                "No movies found. Try a different search."
+            message.contains("No more results available", ignoreCase = true) -> message
+            else -> "Error: $message"
+        }
+    }
+
+    fun shouldShowErrorAsToast(error: String?, hasMovies: Boolean): Boolean {
+        if (error == null) return false
+
+        return when {
+            error.contains("No more results available", ignoreCase = true) -> true
+            error.contains("No internet", ignoreCase = true) && hasMovies -> true
+            error.contains("cached", ignoreCase = true) && hasMovies -> true
+            else -> false
+        }
+    }
+
+    private fun updateLoadMoreState() {
+        _canLoadMore.postValue(
+            allMovies.size < totalResults || totalResults == 0
+        )
+    }
+
     fun clearExpiredCache() {
         viewModelScope.launch {
             repository.clearExpiredCache()
         }
     }
 
-    /**
-     * Clear all cache and refresh
-     */
     fun refreshMovies() {
         viewModelScope.launch {
             repository.clearAllCache()

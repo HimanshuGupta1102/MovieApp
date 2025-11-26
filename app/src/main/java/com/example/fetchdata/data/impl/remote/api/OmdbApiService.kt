@@ -1,7 +1,7 @@
-package com.example.fetchdata.data.remote
+package com.example.fetchdata.data.impl.remote.api
 
-import com.example.fetchdata.data.model.MovieDetail
-import com.example.fetchdata.data.model.SearchResponse
+import com.example.fetchdata.data.api.model.MovieDetail
+import com.example.fetchdata.data.api.model.SearchResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -11,6 +11,7 @@ interface OmdbApiService {
         @Query("apikey") apiKey: String,
         @Query("i") imdbId: String
     ): MovieDetail
+
     @GET("/")
     suspend fun searchMovies(
         @Query("apikey") apiKey: String,

@@ -11,4 +11,6 @@
     <string name="removed_from_favorites">Removed from favorites</string>
     <string name="please_sign_in">Please sign in to add favourites</string>
     <string name="invalid_movie_id">Invalid movie ID</string>
+    <string name="no_favourites_yet">No favourites yet</string>
+    <string name="no_matching_favourites">No matching favourites found</string>
 </resources>

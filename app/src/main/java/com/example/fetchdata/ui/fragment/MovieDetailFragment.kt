@@ -33,12 +33,13 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import coil.compose.AsyncImage
-import com.example.fetchdata.data.model.FavouriteMovie
-import com.example.fetchdata.data.model.MovieDetail
+import com.example.fetchdata.data.api.model.MovieDetail
 import com.example.fetchdata.ui.viewmodel.AuthViewModel
 import com.example.fetchdata.ui.viewmodel.FavouriteViewModel
 import com.example.fetchdata.ui.viewmodel.MovieViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MovieDetailFragment : Fragment() {
 
     private val viewModel: MovieViewModel by viewModels()
@@ -69,6 +70,18 @@ class MovieDetailFragment : Fragment() {
         }
 
         viewModel.fetchMovieDetails(imdbId)
+
+        // Observe UI events from ViewModel
+        viewModel.uiEvent.observe(viewLifecycleOwner) { event ->
+            when (event) {
+                is MovieViewModel.UiEvent.ShowMessage -> {
+                    Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
+                }
+                is MovieViewModel.UiEvent.ShowError -> {
+                    Toast.makeText(requireContext(), event.error, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     @Composable
@@ -171,7 +184,7 @@ class MovieDetailFragment : Fragment() {
             ) {
                 // Backdrop image with reduced opacity
                 AsyncImage(
-                    model = movie.Poster ?: "",
+                    model = movie.poster ?: "",
                     contentDescription = "Backdrop Poster",
                     modifier = Modifier
                         .fillMaxSize()
@@ -204,7 +217,7 @@ class MovieDetailFragment : Fragment() {
                     elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
                 ) {
                     AsyncImage(
-                        model = movie.Poster ?: "",
+                        model = movie.poster ?: "",
                         contentDescription = "Movie Poster",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -245,7 +258,7 @@ class MovieDetailFragment : Fragment() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = movie.Title,
+                    text = movie.title,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -259,30 +272,30 @@ class MovieDetailFragment : Fragment() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = movie.Year,
+                        text = movie.year,
                         fontSize = 14.sp,
                         color = Color(0xFFBBBBBB)
                     )
-                    if (!movie.Rated.isNullOrEmpty() && movie.Rated != "N/A") {
+                    if (!movie.rated.isNullOrEmpty() && movie.rated != "N/A") {
                         Text(
                             text = " • ",
                             fontSize = 14.sp,
                             color = Color(0xFFBBBBBB)
                         )
                         Text(
-                            text = movie.Rated,
+                            text = movie.rated,
                             fontSize = 14.sp,
                             color = Color(0xFFBBBBBB)
                         )
                     }
-                    if (!movie.Runtime.isNullOrEmpty() && movie.Runtime != "N/A") {
+                    if (!movie.runtime.isNullOrEmpty() && movie.runtime != "N/A") {
                         Text(
                             text = " • ",
                             fontSize = 14.sp,
                             color = Color(0xFFBBBBBB)
                         )
                         Text(
-                            text = movie.Runtime,
+                            text = movie.runtime,
                             fontSize = 14.sp,
                             color = Color(0xFFBBBBBB)
                         )
@@ -290,9 +303,9 @@ class MovieDetailFragment : Fragment() {
                 }
 
                 // Genre
-                if (!movie.Genre.isNullOrEmpty() && movie.Genre != "N/A") {
+                if (!movie.genre.isNullOrEmpty() && movie.genre != "N/A") {
                     Text(
-                        text = movie.Genre,
+                        text = movie.genre,
                         fontSize = 14.sp,
                         color = Color(0xFFFFD700),
                         modifier = Modifier.padding(top = 12.dp),
@@ -302,15 +315,15 @@ class MovieDetailFragment : Fragment() {
             }
 
             // Plot Section
-            if (!movie.Plot.isNullOrEmpty() && movie.Plot != "N/A") {
+            if (!movie.plot.isNullOrEmpty() && movie.plot != "N/A") {
                 DetailSection(
                     title = "📖 Plot",
-                    content = movie.Plot
+                    content = movie.plot
                 )
             }
 
             // Cast & Crew Section
-            if (!movie.Director.isNullOrEmpty() || !movie.Writer.isNullOrEmpty() || !movie.Actors.isNullOrEmpty()) {
+            if (!movie.director.isNullOrEmpty() || !movie.writer.isNullOrEmpty() || !movie.actors.isNullOrEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -322,25 +335,25 @@ class MovieDetailFragment : Fragment() {
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    if (!movie.Director.isNullOrEmpty() && movie.Director != "N/A") {
+                    if (!movie.director.isNullOrEmpty() && movie.director != "N/A") {
                         Text(
-                            text = "Director: ${movie.Director}",
+                            text = "Director: ${movie.director}",
                             fontSize = 14.sp,
                             color = Color(0xFFCCCCCC),
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-                    if (!movie.Writer.isNullOrEmpty() && movie.Writer != "N/A") {
+                    if (!movie.writer.isNullOrEmpty() && movie.writer != "N/A") {
                         Text(
-                            text = "Writer: ${movie.Writer}",
+                            text = "Writer: ${movie.writer}",
                             fontSize = 14.sp,
                             color = Color(0xFFCCCCCC),
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
-                    if (!movie.Actors.isNullOrEmpty() && movie.Actors != "N/A") {
+                    if (!movie.actors.isNullOrEmpty() && movie.actors != "N/A") {
                         Text(
-                            text = "Actors: ${movie.Actors}",
+                            text = "Actors: ${movie.actors}",
                             fontSize = 14.sp,
                             color = Color(0xFFCCCCCC),
                             modifier = Modifier.padding(top = 4.dp)
@@ -350,15 +363,15 @@ class MovieDetailFragment : Fragment() {
             }
 
             // Release Info Section
-            if (!movie.Released.isNullOrEmpty() && movie.Released != "N/A") {
+            if (!movie.released.isNullOrEmpty() && movie.released != "N/A") {
                 DetailSection(
                     title = "📅 Release Info",
-                    content = movie.Released
+                    content = movie.released
                 )
             }
 
             // Ratings Section
-            if (!movie.Ratings.isNullOrEmpty()) {
+            if (!movie.ratings.isNullOrEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -370,8 +383,8 @@ class MovieDetailFragment : Fragment() {
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    val ratingsText = movie.Ratings.joinToString("\n") {
-                        "• ${it.Source ?: "Unknown"}: ${it.Value ?: "N/A"}"
+                    val ratingsText = movie.ratings.joinToString("\n") {
+                        "• ${it.source ?: "Unknown"}: ${it.value ?: "N/A"}"
                     }
                     Text(
                         text = ratingsText,
@@ -383,10 +396,10 @@ class MovieDetailFragment : Fragment() {
             }
 
             // Box Office Section
-            if (!movie.BoxOffice.isNullOrEmpty() && movie.BoxOffice != "N/A") {
+            if (!movie.boxOffice.isNullOrEmpty() && movie.boxOffice != "N/A") {
                 DetailSection(
                     title = "💰 Box Office",
-                    content = movie.BoxOffice
+                    content = movie.boxOffice
                 )
             }
 
@@ -418,29 +431,18 @@ class MovieDetailFragment : Fragment() {
     }
 
     private fun handleFavouriteClick(movie: MovieDetail, isFavourite: Boolean, userEmail: String?) {
-        android.util.Log.d("MovieDetailFragment", "Favourite button clicked: isFavourite=$isFavourite")
+        // Validate user can modify favourites
+        if (!viewModel.canModifyFavourites(userEmail)) {
+            return
+        }
 
         if (isFavourite) {
-            android.util.Log.d("MovieDetailFragment", "Removing from favorites: ${movie.imdbID}")
             favouriteViewModel.removeFavourite(movie.imdbID)
-            Toast.makeText(requireContext(), "Removed from favorites", Toast.LENGTH_SHORT).show()
+            viewModel.onFavouriteRemoved()
         } else {
-            if (userEmail == null) {
-                android.util.Log.d("MovieDetailFragment", "User not logged in")
-                Toast.makeText(requireContext(), "Please sign in to add favourites", Toast.LENGTH_SHORT).show()
-                return
-            }
-            android.util.Log.d("MovieDetailFragment", "Adding to favorites: ${movie.Title}")
-            val favMovie = FavouriteMovie(
-                imdbID = movie.imdbID,
-                userEmail = userEmail,
-                title = movie.Title,
-                year = movie.Year,
-                poster = movie.Poster ?: "",
-                type = movie.Type
-            )
+            val favMovie = viewModel.createFavouriteMovie(movie, userEmail!!)
             favouriteViewModel.addFavourite(favMovie)
-            Toast.makeText(requireContext(), "Added to favorites", Toast.LENGTH_SHORT).show()
+            viewModel.onFavouriteAdded()
         }
     }
 }

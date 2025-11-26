@@ -7,7 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import com.example.fetchdata.ui.viewmodel.AuthViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private val authViewModel: AuthViewModel by viewModels()
@@ -25,16 +27,13 @@ class MainActivity : AppCompatActivity() {
             authViewModel.checkIfUserLoggedIn()
         }
 
-        // Handle back button press
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when (navController.currentDestination?.id) {
                     R.id.homeFragment, R.id.signInFragment, R.id.signUpFragment -> {
-                        // If we're on home or sign-in screen, close the app
                         finish()
                     }
                     else -> {
-                        // For other screens, use default navigation back
                         if (!navController.popBackStack()) {
                             finish()
                         }
